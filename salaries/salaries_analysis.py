@@ -1,5 +1,6 @@
 from kaggle import KaggleApi
 import os
+import pandas as pd
 from pandas import DataFrame, read_sql
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.engine import Engine, Inspector
@@ -43,6 +44,25 @@ def load_sqlite_data(path: str) -> DataFrame:
     return df
 
 
+def clean_data(df: DataFrame) -> DataFrame:
+    df = df.copy()
+    df = (
+        df.assign(
+            BasePay=pd.to_numeric(df.BasePay, errors='coerce'),
+            OvertimePay=pd.to_numeric(df.OvertimePay, errors='coerce'),
+            OtherPay=pd.to_numeric(df.OtherPay, errors='coerce'),
+            Benefits=pd.to_numeric(df.Benefits, errors='coerce')
+        ).drop(
+            labels=['Agency', 'Notes'],
+            axis=1
+        )
+    )
+    # Agency and Notes do not bring any value and therefore are dropped
+    return df
+
+
 if __name__ == '__main__':
     download_data(kaggle_dataset, 'data')
     sal: DataFrame = load_sqlite_data('data')
+    sal = clean_data(sal)
+    print()
