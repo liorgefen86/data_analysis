@@ -1,0 +1,8 @@
+# Ignoring project and python folders
+.idea
+data_analysis
+
+# Ignore data files
+*.sqlite
+*.csv
+*.xls*
