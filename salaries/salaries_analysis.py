@@ -2,7 +2,8 @@ import gender_guesser.detector as gender
 from kaggle import KaggleApi
 import os
 import pandas as pd
-from pandas import DataFrame, read_sql
+from pandas import DataFrame, read_sql, Series
+import plotly.graph_objs as go
 import re
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.engine import Engine, Inspector
@@ -59,6 +60,8 @@ def clean_data(df: DataFrame) -> DataFrame:
             axis=1
         )
     )
+    df = get_first_name(df)
+    df = get_gender(df)
     # Agency and Notes do not bring any value and therefore are dropped
     return df
 
@@ -78,12 +81,40 @@ def get_first_name(df: DataFrame):
 def get_gender(df: DataFrame) -> DataFrame:
     df = df.copy()
     g = gender.Detector(False)
-    df['Gender'] = sal.FirstName.apply(g.get_gender)
+    df['Gender'] = df.FirstName.apply(g.get_gender)
     return df
+
+
+def print_gender_distribution(df: DataFrame, field: str):
+    def define_histogram(data: Series, text: str, color: str):
+        return go.Histogram(
+            x=data,
+            histnorm='probability density',
+            name=text,
+            text=text,
+            xbins={'start': 0, 'end': data.max(), 'size': 5_000},
+            opacity=0.5,
+            marker={'color': color}
+        )
+
+    male: Series = df[df.Gender == 'male'][field]
+    female: Series = df[df.Gender == 'female'][field]
+    (go.Figure(
+        data=[
+            define_histogram(male, 'male', 'blue'),
+            define_histogram(female, 'female', 'red'),
+        ],
+        layout=go.Layout(
+            title=go.layout.Title(text=f'{field} distribution'),
+            barmode='overlay'
+        )
+    ).show()
+    )
 
 
 if __name__ == '__main__':
     download_data(kaggle_dataset, 'data')
     sal: DataFrame = load_sqlite_data('data')
     sal = clean_data(sal)
+    print_gender_distribution(sal, 'TotalPay')
     print()
