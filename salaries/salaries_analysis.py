@@ -1,7 +1,9 @@
+import gender_guesser.detector as gender
 from kaggle import KaggleApi
 import os
 import pandas as pd
 from pandas import DataFrame, read_sql
+import re
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.engine import Engine, Inspector
 
@@ -58,6 +60,25 @@ def clean_data(df: DataFrame) -> DataFrame:
         )
     )
     # Agency and Notes do not bring any value and therefore are dropped
+    return df
+
+
+def get_first_name(df: DataFrame):
+    def support_function(fullname: str):
+        names = re.findall(r'[\w]+', fullname)
+        for name in names:
+            if len(name) > 2:
+                return name
+        return names[0]
+    df = df.copy()
+    df['FirstName'] = df.EmployeeName.apply(support_function)
+    return df
+
+
+def get_gender(df: DataFrame) -> DataFrame:
+    df = df.copy()
+    g = gender.Detector(False)
+    df['Gender'] = sal.FirstName.apply(g.get_gender)
     return df
 
 
